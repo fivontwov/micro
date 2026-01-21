@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: ddp_study_management
+
+  config:
+    import: classpath:env.properties
+
+  datasource:
+    url: ${DATASOURCE_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+    defer-datasource-initialization: true
+    show-sql: true
+
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data.sql
+
+# Redis cache settings
+
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+  cache:
+    type: redis
+management:
+  endpoints:
+    web:
+      exposure:
+        include: caches
+
+logging:
+  level:
+    org.springframework.cache: DEBUG
+    org.springframework.data.redis: DEBUG
+    org.springframework.data.redis.cache: DEBUG
+    org.springframework.data.redis.connection: DEBUG
+
+grpc:
+  server:
+    security:
+      enabled: false
+    port: 9090
+
+  client:
+    local-grpc-server:
+      address: static://localhost:9090
+      negotiationType: plaintext
