@@ -7,6 +7,13 @@
 - **GitHub**: https://github.com/spring-cloud/spring-cloud-gateway
 
 ---
+micro/
+├── api-gateway/          ← NEW
+│   ├── src/
+│   ├── pom.xml
+│   └── Dockerfile
+├── forum/
+└── ssstudy_management/
 
 ## 🎯 API Gateway là gì?
 

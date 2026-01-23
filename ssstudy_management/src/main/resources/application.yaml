@@ -1,6 +1,9 @@
+server:
+  port: 8082
+
 spring:
   application:
-    name: ddp_study_management
+    name: study-management-service
 
   config:
     import: classpath:env.properties
@@ -53,3 +56,14 @@ grpc:
     local-grpc-server:
       address: static://localhost:9090
       negotiationType: plaintext
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}

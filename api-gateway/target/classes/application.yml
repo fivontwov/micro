@@ -1,0 +1,87 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      # Enable service discovery locator
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        # Route for Forum Service (using service discovery)
+        # Example: /api/forum/topics -> /topics
+        - id: forum-service
+          uri: lb://forum-service  # lb = load balanced, forum-service = service name in Eureka
+          predicates:
+            - Path=/api/forum/**
+          filters:
+            - StripPrefix=2  # Remove /api/forum -> /topics
+            - AddRequestHeader=X-Source, Gateway
+
+        # Route for Study Management Service (using service discovery)
+        # Example: /api/study/auth/login -> /auth/login
+        - id: study-management-service
+          uri: lb://study-management-service  # lb = load balanced
+          predicates:
+            - Path=/api/study/**
+          filters:
+            - StripPrefix=2  # Remove /api/study -> /auth, /users, etc.
+            - AddRequestHeader=X-Source, Gateway
+
+      # Global CORS configuration
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+
+  # Redis configuration for rate limiting (optional - disabled for now)
+#  data:
+#    redis:
+#      host: localhost
+#      port: 6379
+
+# Security configuration (disabled for now - enable when you have JWT auth ready)
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          issuer-uri: http://localhost:8082/auth/issuer
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: gateway, health, metrics, routes
+  endpoint:
+    gateway:
+      enabled: true
+
+# Logging
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty: INFO

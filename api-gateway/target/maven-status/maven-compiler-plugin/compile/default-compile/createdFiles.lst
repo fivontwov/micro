@@ -1,0 +1,3 @@
+com\micro\apigateway\ApiGatewayApplication.class
+com\micro\apigateway\config\SecurityConfig.class
+com\micro\apigateway\filter\LoggingFilter.class

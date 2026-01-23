@@ -46,7 +46,7 @@ public class UserGrpcController extends UserServiceGrpc.UserServiceImplBase {
                 .setUsername(user.getUsername())
                 .setName(user.getName())
                 .setEmail(user.getEmail())
-                .setRole(user.getRole().name()) // 👈 enum → string
+                .setRole(user.getRole().name())
                 .setCreatedAt(user.getCreatedAt().toString())
                 .build();
     }

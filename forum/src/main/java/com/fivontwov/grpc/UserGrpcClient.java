@@ -6,6 +6,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -14,7 +15,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class UserGrpcClient {
-
+    @GrpcClient("user-service")
     private final UserServiceGrpc.UserServiceBlockingStub userStub;
 
     public Optional<UserResponse> getUserById(long id) {
@@ -27,13 +28,8 @@ public class UserGrpcClient {
             return Optional.of(response);
 
         } catch (StatusRuntimeException e) {
-            if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
-                log.warn("User not found with id {}", id);
-                return Optional.empty();
-            }
-
             log.error("Error calling UserService.getUserById, id={}", id, e);
-            throw e;
+            return Optional.empty();
         }
     }
 }
