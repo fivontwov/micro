@@ -266,3 +266,9 @@ docker pull fivontwov/ssstudy_management-app:latest
 docker run -p 8080:8080 fivontwov/ssstudy_management-app:latest
 docker images  
 docker run -p 8080:8080 fivontwov/ssstudy_management-app:latest
+
+Vấn đề với grpc:  
+vì phải tạo port riêng vì nó trả binary không phải rest  
+service báo với eureka port 0 để random được còn grpc thì không. báo lỗi. mới .NET làm được.  
+hay bị lỗi version. cài thêm eureka lại bị conflict trong pom  
+-> phải tạo chay port grpc để còn lb  

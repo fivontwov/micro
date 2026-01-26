@@ -3,44 +3,50 @@ package com.fivontwov.grpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import com.fivontwov.user.proto.UserServiceGrpc;
-import java.util.concurrent.TimeUnit;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Configuration
 @Slf4j
 public class GrpcConfig {
 
-    @Value("${grpc.user.host:localhost}")
-    private String userServiceHost;
+    private final DiscoveryClient discoveryClient;
+    private final AtomicInteger counter = new AtomicInteger();
 
-    @Value("${grpc.user.port:9090}")
-    private int userServicePort;
+    public GrpcConfig(DiscoveryClient discoveryClient) {
+        this.discoveryClient = discoveryClient;
+    }
 
     @Bean(destroyMethod = "shutdown")
     public ManagedChannel userChannel() {
-        log.info("Creating gRPC channel to User Service at {}:{}",
-                userServiceHost, userServicePort);
+        List<ServiceInstance> instances = discoveryClient.getInstances("STUDY-MANAGEMENT-SERVICE");
+        if (instances.isEmpty()) {
+            throw new IllegalStateException("No instances of DDP-STUDY-MANAGEMENT found in Eureka");
+        }
+
+        int index = counter.getAndIncrement() % instances.size();
+        ServiceInstance instance = instances.get(index);
+
+        String host = instance.getHost();
+        String grpcPort = instance.getMetadata().get("grpc.port");
+
+        log.info("Creating gRPC channel to User Service at {}:{} (instance {})",
+                host, grpcPort, instance.getInstanceId());
 
         return ManagedChannelBuilder
-                .forAddress(userServiceHost, userServicePort)
+                .forAddress(host, Integer.parseInt(grpcPort))
                 .usePlaintext()
-                .keepAliveTime(30, TimeUnit.SECONDS)
-                .keepAliveTimeout(10, TimeUnit.SECONDS)
-                .keepAliveWithoutCalls(true)
-                .idleTimeout(5, TimeUnit.MINUTES)
-                .maxInboundMessageSize(4 * 1024 * 1024)
                 .build();
     }
 
     @Bean
-    public UserServiceGrpc.UserServiceBlockingStub userBlockingStub(
-            ManagedChannel userChannel) {
-
-        log.info("Creating UserServiceBlockingStub");
-
+    public UserServiceGrpc.UserServiceBlockingStub userServiceStub(ManagedChannel userChannel) {
         return UserServiceGrpc.newBlockingStub(userChannel);
     }
 }

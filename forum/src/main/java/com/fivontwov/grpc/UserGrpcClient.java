@@ -15,7 +15,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class UserGrpcClient {
-    @GrpcClient("user-service")
+    @GrpcClient("STUDY-MANAGEMENT-SERVICE")
     private final UserServiceGrpc.UserServiceBlockingStub userStub;
 
     public Optional<UserResponse> getUserById(long id) {

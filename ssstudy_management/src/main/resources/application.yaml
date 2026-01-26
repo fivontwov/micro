@@ -1,5 +1,5 @@
 server:
-  port: 8082
+  port: 0
 
 spring:
   application:
@@ -16,14 +16,14 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     open-in-view: false
     defer-datasource-initialization: true
     show-sql: true
 
   sql:
     init:
-      mode: always
+      mode: never
       data-locations: classpath:data.sql
 
 # Redis cache settings
@@ -50,12 +50,12 @@ grpc:
   server:
     security:
       enabled: false
-    port: 9090
+    port: 5
 
-  client:
-    local-grpc-server:
-      address: static://localhost:9090
-      negotiationType: plaintext
+#  client:
+#    local-grpc-server:
+#      address: static://localhost:9090
+#      negotiationType: plaintext
 
 # Eureka Client Configuration
 eureka:
@@ -67,3 +67,7 @@ eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
+
+    metadata-map:
+      grpc.port: ${grpc.server.port}
+
