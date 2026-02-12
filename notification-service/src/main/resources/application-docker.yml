@@ -1,0 +1,9 @@
+# Docker-specific configuration
+spring:
+  kafka:
+    bootstrap-servers: kafka:9092  # Use Kafka hostname in Docker network
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/

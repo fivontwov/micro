@@ -1,0 +1,5 @@
+com\micro\notification\NotificationApplication.class
+com\micro\notification\config\KafkaConsumerConfig.class
+com\micro\notification\service\EmailService.class
+com\micro\notification\event\CommentCreatedEvent.class
+com\micro\notification\kafka\CommentEventConsumer.class

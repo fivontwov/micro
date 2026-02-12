@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Comment Notification</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .notification-type {
+            display: inline-block;
+            background-color: #667eea;
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        .topic-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+        .commenter-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f7fafc;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        .commenter-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 18px;
+            margin-right: 12px;
+        }
+        .commenter-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        .comment-body {
+            background-color: #f7fafc;
+            padding: 20px;
+            border-radius: 6px;
+            border-left: 4px solid #e2e8f0;
+            margin-bottom: 25px;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #4a5568;
+        }
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+        .action-button:hover {
+            transform: translateY(-2px);
+        }
+        .footer {
+            background-color: #f7fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #718096;
+            border-top: 1px solid #e2e8f0;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔔 Forum Notification</h1>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="greeting">
+                Hello!
+            </div>
+
+            <!-- Notification Type Badge -->
+            <span class="notification-type" th:if="${isReply}">Reply to Your Comment</span>
+            <span class="notification-type" th:unless="${isReply}">New Comment</span>
+
+            <!-- Topic Title -->
+            <div class="topic-title" th:if="${isReply}">
+                Someone replied to your comment on "<span th:text="${topicTitle}"></span>"
+            </div>
+            <div class="topic-title" th:unless="${isReply}">
+                New comment on your topic "<span th:text="${topicTitle}"></span>"
+            </div>
+
+            <!-- Commenter Info -->
+            <div class="commenter-info">
+                <div class="commenter-avatar" th:text="${#strings.substring(commenterName, 0, 1).toUpperCase()}">
+                    U
+                </div>
+                <div>
+                    <div class="commenter-name" th:text="${commenterName}">User Name</div>
+                    <div style="font-size: 12px; color: #718096;">commented just now</div>
+                </div>
+            </div>
+
+            <!-- Comment Body -->
+            <div class="comment-body" th:text="${commentBody}">
+                This is the comment content that will be displayed here.
+            </div>
+
+            <!-- Action Button -->
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="#" class="action-button">View Comment</a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>You received this email because you're subscribed to notifications for this topic.</p>
+            <p>
+                <a href="#">Unsubscribe</a> | 
+                <a href="#">Notification Settings</a>
+            </p>
+            <p style="margin-top: 15px;">
+                &copy; <span th:text="${year}">2024</span> Forum App. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

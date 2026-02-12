@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/ssstudy_management/ddp_study_management.iml" filepath="$PROJECT_DIR$/ssstudy_management/ddp_study_management.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/micro.iml" filepath="$PROJECT_DIR$/.idea/micro.iml" />
     </modules>
   </component>

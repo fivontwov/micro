@@ -18,6 +18,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="api-gateway" />
         <module name="eureka-server" />
+        <module name="notification-service" />
       </profile>
       <profile name="Annotation profile for ddp_study_management" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
@@ -26,10 +27,13 @@
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.6.3/mapstruct-processor-1.6.3.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.6.3/mapstruct-processor-1.6.3.jar" />
         </processorPath>
         <module name="ddp_study_management" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel target="17" />
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
@@ -37,6 +41,7 @@
       <module name="ddp_study_management" options="-parameters" />
       <module name="eureka-server" options="-parameters" />
       <module name="forum" options="-parameters" />
+      <module name="notification-service" options="-parameters" />
     </option>
   </component>
 </project>

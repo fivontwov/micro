@@ -1,7 +1,9 @@
 package com.fivontwov.service;
 
 import com.fivontwov.dto.*;
+import com.fivontwov.event.CommentCreatedEvent;
 import com.fivontwov.grpc.UserGrpcClient;
+import com.fivontwov.kafka.KafkaProducerService;
 import com.fivontwov.model.Comment;
 import com.fivontwov.model.Topic;
 import com.fivontwov.model.TopicVote;
@@ -12,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fivontwov.user.proto.UserResponse;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,6 +28,7 @@ public class TopicService {
     private final CommentRepository commentRepository;
     private final TopicVoteRepository voteRepository;
     private final UserGrpcClient userClient;
+    private final KafkaProducerService kafkaProducerService;
 
     public Topic createTopic(Long userId, String title, String body) {
         Optional<UserResponse> userOpt = userClient.getUserById(userId);
@@ -39,21 +44,67 @@ public class TopicService {
     }
 
     public Comment addComment(Long topicId, AddCommentRequest req) {
-        Optional<Topic> topic = topicRepository.findById(topicId);
-        if (topic.isEmpty()) throw new IllegalArgumentException("Topic not found");
+        Optional<Topic> topicOpt = topicRepository.findById(topicId);
+        if (topicOpt.isEmpty()) throw new IllegalArgumentException("Topic not found");
+        Topic topic = topicOpt.get();
 
-        // Verify user exists via gRPC
-        Optional<UserResponse> userOpt = userClient.getUserById(req.getUserId());
-        if (userOpt.isEmpty()) {
+        // Verify commenter exists via gRPC
+        Optional<UserResponse> commenterOpt = userClient.getUserById(req.getUserId());
+        if (commenterOpt.isEmpty()) {
             throw new IllegalArgumentException("User not found with id: " + req.getUserId());
         }
+        UserResponse commenter = commenterOpt.get();
 
+        // Save comment
         Comment c = new Comment();
         c.setTopicId(topicId);
         c.setParentCommentId(req.getParentCommentId());
         c.setUserId(req.getUserId());
         c.setBody(req.getBody());
-        return commentRepository.save(c);
+        Comment savedComment = commentRepository.save(c);
+
+        // Get topic creator info
+        Optional<UserResponse> topicCreatorOpt = userClient.getUserById(topic.getUserId());
+        
+        // Get parent comment creator info (if this is a reply)
+        UserResponse parentCommentCreator = null;
+        if (req.getParentCommentId() != null) {
+            Optional<Comment> parentCommentOpt = commentRepository.findById(req.getParentCommentId());
+            if (parentCommentOpt.isPresent()) {
+                Comment parentComment = parentCommentOpt.get();
+                Optional<UserResponse> parentCreatorOpt = userClient.getUserById(parentComment.getUserId());
+                parentCommentCreator = parentCreatorOpt.orElse(null);
+            }
+        }
+
+        // Create and send Kafka event
+        CommentCreatedEvent event = new CommentCreatedEvent();
+        event.setCommentId(savedComment.getId());
+        event.setTopicId(topicId);
+        event.setCommenterId(req.getUserId());
+        event.setCommenterEmail(commenter.getEmail());
+        event.setCommenterName(commenter.getName());
+        event.setCommentBody(req.getBody());
+        event.setCreatedAt(LocalDateTime.now());
+        event.setTopicTitle(topic.getTitle());
+        
+        // Topic creator info
+        if (topicCreatorOpt.isPresent()) {
+            event.setTopicCreatorId(topic.getUserId());
+            event.setTopicCreatorEmail(topicCreatorOpt.get().getEmail());
+        }
+        
+        // Parent comment creator info (if reply)
+        if (parentCommentCreator != null) {
+            event.setParentCommentId(req.getParentCommentId());
+            event.setParentCommentCreatorId(parentCommentCreator.getId());
+            event.setParentCommentCreatorEmail(parentCommentCreator.getEmail());
+        }
+
+        // Send event to Kafka
+        kafkaProducerService.sendCommentCreatedEvent(event);
+
+        return savedComment;
     }
 
     @Transactional
