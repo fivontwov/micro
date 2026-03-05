@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification
+  namespace: microservices
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification
+  template:
+    metadata:
+      labels:
+        app: notification
+    spec:
+      containers:
+      - name: notification
+        image: micro-notification-service:latest
+        imagePullPolicy: Never  # Use local image
+        ports:
+        - containerPort: 8083
+          name: http
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "production"
+        - name: SERVER_PORT
+          value: "8083"
+        # Kafka
+        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka:9092"
+        # Email
+        - name: SPRING_MAIL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MAIL_HOST
+        - name: SPRING_MAIL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MAIL_PORT
+        - name: SPRING_MAIL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: mail-username
+        - name: SPRING_MAIL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: mail-password
+        # Eureka
+        - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: EUREKA_SERVER_URL
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8083
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8083
+          initialDelaySeconds: 60
+          periodSeconds: 5
+          timeoutSeconds: 10
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"

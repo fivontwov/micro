@@ -1,10 +1,9 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: micro-postgres
+  forum-postgres:
+    image: postgres:16-alpine
+    container_name: forum-postgres
     environment:
       POSTGRES_DB: forum
       POSTGRES_USER: postgres
@@ -12,7 +11,26 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - forum-postgres-data:/var/lib/postgresql/data
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  study-postgres:
+    image: postgres:15-alpine
+    container_name: study-postgres
+    environment:
+      POSTGRES_DB: study_management # bên study để subjectdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5433:5432"
+    volumes:
+      - study-postgres-data:/var/lib/postgresql/data
     networks:
       - microservices-network
     healthcheck:
@@ -105,7 +123,9 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      postgres:
+      forum-postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
@@ -113,9 +133,10 @@ services:
       - microservices-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/forum
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://forum-postgres:5432/forum
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=123456
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://study-management-service:9090
     healthcheck:
@@ -134,7 +155,7 @@ services:
       - "8082:8082"
       - "9090:9090"  # gRPC port
     depends_on:
-      postgres:
+      study-postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -144,7 +165,7 @@ services:
       - microservices-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - DATASOURCE_URL=jdbc:postgresql://postgres:5432/study_management
+      - DATASOURCE_URL=jdbc:postgresql://study-postgres:5432/study_management
       - DB_USERNAME=postgres
       - DB_PASSWORD=123456
       - REDIS_HOST=redis
@@ -212,4 +233,5 @@ networks:
     driver: bridge
 
 volumes:
-  postgres-data:
+  forum-postgres-data:
+  study-postgres-data:
