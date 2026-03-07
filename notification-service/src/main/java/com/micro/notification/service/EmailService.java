@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+/**
+ * Service để gửi email notifications
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -43,7 +46,7 @@ public class EmailService {
 
             // Email metadata
             helper.setTo(recipientEmail);
-            helper.setFrom("studyapp@forumapp.com");
+            helper.setFrom("noreply@forumapp.com");
             helper.setSubject(buildSubject(commenterName, topicTitle, isReply));
 
             // Build HTML content from template
@@ -61,6 +64,9 @@ public class EmailService {
         }
     }
 
+    /**
+     * Build email subject
+     */
     private String buildSubject(String commenterName, String topicTitle, boolean isReply) {
         if (isReply) {
             return String.format("%s replied to your comment on \"%s\"", commenterName, topicTitle);
@@ -69,6 +75,9 @@ public class EmailService {
         }
     }
 
+    /**
+     * Build HTML email content using Thymeleaf template
+     */
     private String buildHtmlContent(
         String commenterName,
         String topicTitle,

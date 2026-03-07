@@ -12,31 +12,49 @@ spring:
           enabled: true
           lower-case-service-id: true
       routes:
-        # Route for Forum Service (using service discovery)
+        # ── Forum Service REST ────────────────────────────────────────────────
         # Example: /api/forum/topics -> /topics
         - id: forum-service
-          uri: lb://forum-service  # lb = load balanced, forum-service = service name in Eureka
+          uri: lb://forum-service
           predicates:
             - Path=/api/forum/**
           filters:
-            - StripPrefix=2  # Remove /api/forum -> /topics
+            - StripPrefix=2
             - AddRequestHeader=X-Source, Gateway
 
-        # Route for Study Management Service (using service discovery)
+        # ── Forum Service WebSocket (Typing Indicator) ────────────────────────
+        # ws://localhost:8080/api/forum-ws/ws  -> ws://forum-service/ws
+        - id: forum-service-ws
+          uri: lb:ws://forum-service
+          predicates:
+            - Path=/api/forum-ws/**
+          filters:
+            - StripPrefix=2
+
+        # ── Notification Service WebSocket (Notification Bell) ─────────────
+        # ws://localhost:8080/api/notifications/ws  -> ws://notification-service/ws
+        - id: notification-service-ws
+          uri: lb:ws://notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - StripPrefix=2
+
+        # ── Study Management Service REST ─────────────────────────────────────
         # Example: /api/study/auth/login -> /auth/login
         - id: study-management-service
-          uri: lb://study-management-service  # lb = load balanced
+          uri: lb://study-management-service
           predicates:
             - Path=/api/study/**
           filters:
-            - StripPrefix=2  # Remove /api/study -> /auth, /users, etc.
+            - StripPrefix=2
             - AddRequestHeader=X-Source, Gateway
 
       # Global CORS configuration
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOriginPatterns: "http://localhost:8080"
+            allowedOrigins: "*"
             allowedMethods:
               - GET
               - POST

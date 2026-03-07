@@ -34,9 +34,9 @@ public class GrpcConfig {
         ServiceInstance instance = instances.get(index);
 
         String host = instance.getHost();
-        String grpcPort = instance.getMetadata().get("grpc.port");
-
-        log.info("Creating gRPC channel to User Service at {}:{} (instance {})",
+//        String grpcPort = instance.getMetadata().get("grpc.server.port");
+        String grpcPort = "9090";
+                log.info("Creating gRPC channel to User Service at {}:{} (instance {})",
                 host, grpcPort, instance.getInstanceId());
 
         return ManagedChannelBuilder

@@ -1,5 +1,5 @@
 server:
-  port: 8761
+  port: 8761  # Default Eureka Server port
 
 spring:
   application:
@@ -8,13 +8,14 @@ spring:
 eureka:
   instance:
     hostname: localhost
-
   client:
+    # Don't register itself with Eureka
     register-with-eureka: false
     fetch-registry: false
     service-url:
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
   server:
+    # Disable self-preservation mode in development
     enable-self-preservation: false
     eviction-interval-timer-in-ms: 4000
 

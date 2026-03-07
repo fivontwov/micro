@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Typing Indicator - Test</title>
+    <!-- SockJS + STOMP từ CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        h1 { color: #1a1a2e; margin-bottom: 4px; font-size: 22px; }
+        .subtitle { color: #666; font-size: 13px; margin-bottom: 20px; }
+
+        .panel {
+            background: white; border-radius: 10px; padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 16px;
+        }
+        .panel h2 { font-size: 15px; color: #444; margin-bottom: 14px; }
+
+        .row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        label { font-size: 13px; color: #555; min-width: 80px; }
+        input {
+            border: 1px solid #ddd; border-radius: 6px; padding: 7px 10px;
+            font-size: 13px; flex: 1;
+        }
+        button {
+            padding: 8px 18px; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 13px; font-weight: 600;
+        }
+        .btn-connect  { background: #4CAF50; color: white; }
+        .btn-disconnect { background: #f44336; color: white; }
+        .btn-stop     { background: #FF9800; color: white; }
+
+        .status {
+            display: inline-block; padding: 3px 10px; border-radius: 20px;
+            font-size: 12px; font-weight: 600;
+        }
+        .status.connected    { background: #e8f5e9; color: #2e7d32; }
+        .status.disconnected { background: #ffebee; color: #c62828; }
+
+        textarea {
+            width: 100%; border: 1px solid #ddd; border-radius: 6px;
+            padding: 10px; font-size: 14px; resize: vertical; min-height: 80px;
+        }
+
+        #typing-banner {
+            min-height: 28px; padding: 6px 12px;
+            background: #fff3e0; border-radius: 6px;
+            font-size: 13px; color: #e65100;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .dot-anim span {
+            display: inline-block; width: 6px; height: 6px;
+            background: #e65100; border-radius: 50%; margin: 0 1px;
+            animation: bounce 1.2s infinite;
+        }
+        .dot-anim span:nth-child(2) { animation-delay: .2s; }
+        .dot-anim span:nth-child(3) { animation-delay: .4s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40%           { transform: translateY(-6px); }
+        }
+
+        #log {
+            background: #1e1e1e; color: #d4d4d4; border-radius: 8px;
+            padding: 14px; font-family: monospace; font-size: 12px;
+            height: 200px; overflow-y: auto;
+        }
+        .log-in  { color: #4fc3f7; }
+        .log-out { color: #a5d6a7; }
+        .log-err { color: #ef9a9a; }
+        .log-sys { color: #ce93d8; }
+
+        .tip {
+            background: #e3f2fd; border-left: 3px solid #1976d2;
+            padding: 10px 14px; border-radius: 4px;
+            font-size: 12px; color: #1565c0; line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+<h1>⌨️ WebSocket Typing Indicator</h1>
+<p class="subtitle">Mở trang này trên 2 tab browser để test bidirectional WebSocket</p>
+
+<!-- Config -->
+<div class="panel">
+    <h2>⚙️ Kết nối</h2>
+    <div class="row">
+        <label>WS URL</label>
+        <input id="wsUrl" value="http://localhost:8081/ws" />
+    </div>
+    <div class="row">
+        <label>Topic ID</label>
+        <input id="topicId" type="number" value="1" style="max-width:100px" />
+        <label>User ID</label>
+        <input id="userId" type="number" value="1" style="max-width:100px" />
+        <label>Tên bạn</label>
+        <input id="userName" value="Alice" style="max-width:140px" />
+    </div>
+    <div class="row">
+        <button class="btn-connect" onclick="connect()">🔌 Connect</button>
+        <button class="btn-disconnect" onclick="disconnect()">❌ Disconnect</button>
+        <span id="statusBadge" class="status disconnected">● Disconnected</span>
+    </div>
+</div>
+
+<!-- Typing area -->
+<div class="panel">
+    <h2>✍️ Gõ comment (demo typing indicator)</h2>
+
+    <!-- Typing banner: hiện khi người khác đang gõ -->
+    <div id="typing-banner">
+        <span id="typingText" style="display:none"></span>
+    </div>
+    <br>
+
+    <textarea id="commentBox" placeholder="Gõ gì đó để test typing indicator..."
+              oninput="onTyping()" style="margin-bottom:10px"></textarea>
+
+    <div class="row">
+        <button class="btn-stop" onclick="sendStopped()">⏹ Gửi STOPPED</button>
+        <span style="font-size:12px;color:#999">
+            (TYPING tự gửi khi gõ — STOPPED gửi khi bạn bấm nút hoặc xoá hết chữ)
+        </span>
+    </div>
+</div>
+
+<!-- Log -->
+<div class="panel">
+    <h2>📋 Log sự kiện</h2>
+    <div id="log"></div>
+</div>
+
+<!-- Tips -->
+<div class="panel">
+    <div class="tip">
+        <strong>💡 Cách test:</strong><br>
+        1. Mở trang này trên <strong>Tab 1</strong> — User "Alice", kết nối với Topic 1<br>
+        2. Mở trang này trên <strong>Tab 2</strong> — User "Bob", kết nối với Topic 1<br>
+        3. Alice gõ chữ → Tab 2 hiện <em>"Alice đang gõ..."</em><br>
+        4. Bob gõ chữ → Tab 1 hiện <em>"Bob đang gõ..."</em><br>
+        <br>
+        <strong>STOMP flow (bidirectional):</strong><br>
+        Client → <code>/app/forum/1/typing</code> &nbsp;|&nbsp;
+        Server → <code>/topic/forum/1/typing</code>
+    </div>
+</div>
+
+<script>
+    let stompClient = null;
+    let typingTimeout = null;
+    let isTyping = false;
+    // Track các user đang gõ: { userId → userName }
+    const typingUsers = {};
+
+    function log(msg, type = 'sys') {
+        const div = document.getElementById('log');
+        const time = new Date().toLocaleTimeString();
+        div.innerHTML += `<div class="log-${type}">[${time}] ${msg}</div>`;
+        div.scrollTop = div.scrollHeight;
+    }
+
+    function setStatus(connected) {
+        const badge = document.getElementById('statusBadge');
+        badge.textContent = connected ? '● Connected' : '● Disconnected';
+        badge.className = 'status ' + (connected ? 'connected' : 'disconnected');
+    }
+
+    // ── Connect ──────────────────────────────────────────────────────────────
+    function connect() {
+        const url     = document.getElementById('wsUrl').value;
+        const topicId = document.getElementById('topicId').value;
+
+        log(`Connecting to ${url} ...`, 'sys');
+
+        const socket = new SockJS(url);
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null; // tắt debug log của STOMP
+
+        stompClient.connect({}, function (frame) {
+            setStatus(true);
+            log(`✅ Connected! Session: ${frame.headers['heart-beat']}`, 'sys');
+
+            // Subscribe nhận typing events của topic này
+            const dest = `/topic/forum/${topicId}/typing`;
+            stompClient.subscribe(dest, function (message) {
+                const event = JSON.parse(message.body);
+                handleIncomingTyping(event);
+                log(`📥 IN  [${dest}]: ${JSON.stringify(event)}`, 'in');
+            });
+            log(`📡 Subscribed: ${dest}`, 'sys');
+
+        }, function (error) {
+            setStatus(false);
+            log(`❌ Error: ${error}`, 'err');
+        });
+    }
+
+    // ── Disconnect ───────────────────────────────────────────────────────────
+    function disconnect() {
+        if (stompClient) {
+            sendStopped();
+            stompClient.disconnect(() => {
+                setStatus(false);
+                log('🔌 Disconnected', 'sys');
+            });
+        }
+    }
+
+    // ── Gửi TYPING event ─────────────────────────────────────────────────────
+    function sendTyping() {
+        if (!stompClient || !stompClient.connected) return;
+        const topicId  = document.getElementById('topicId').value;
+        const userId   = document.getElementById('userId').value;
+        const userName = document.getElementById('userName').value;
+
+        const event = { userId, userName, action: 'TYPING' };
+        const dest  = `/app/forum/${topicId}/typing`;
+
+        stompClient.send(dest, {}, JSON.stringify(event));
+        log(`📤 OUT [${dest}]: ${JSON.stringify(event)}`, 'out');
+    }
+
+    // ── Gửi STOPPED event ────────────────────────────────────────────────────
+    function sendStopped() {
+        if (!stompClient || !stompClient.connected) return;
+        const topicId  = document.getElementById('topicId').value;
+        const userId   = document.getElementById('userId').value;
+        const userName = document.getElementById('userName').value;
+
+        const event = { userId, userName, action: 'STOPPED' };
+        const dest  = `/app/forum/${topicId}/typing`;
+
+        stompClient.send(dest, {}, JSON.stringify(event));
+        log(`📤 OUT [${dest}]: ${JSON.stringify(event)}`, 'out');
+        isTyping = false;
+    }
+
+    // ── Debounce khi gõ ──────────────────────────────────────────────────────
+    function onTyping() {
+        const text = document.getElementById('commentBox').value;
+
+        if (text.length === 0) {
+            // Xoá hết → STOPPED
+            if (isTyping) sendStopped();
+            return;
+        }
+
+        // Gửi TYPING lần đầu
+        if (!isTyping) {
+            isTyping = true;
+            sendTyping();
+        }
+
+        // Reset timeout → gửi STOPPED sau 2.5s không gõ
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            sendStopped();
+        }, 2500);
+    }
+
+    // ── Xử lý event nhận được ────────────────────────────────────────────────
+    function handleIncomingTyping(event) {
+        const myUserId = document.getElementById('userId').value;
+
+        // Bỏ qua event của chính mình
+        if (String(event.userId) === String(myUserId)) return;
+
+        if (event.action === 'TYPING') {
+            typingUsers[event.userId] = event.userName;
+        } else {
+            delete typingUsers[event.userId];
+        }
+
+        updateTypingBanner();
+    }
+
+    function updateTypingBanner() {
+        const names  = Object.values(typingUsers);
+        const banner = document.getElementById('typingBanner');
+        const text   = document.getElementById('typingText');
+        const anim   = document.getElementById('dotAnim');
+
+        if (names.length === 0) {
+            text.style.display = 'none';
+            if (anim) anim.style.display = 'none';
+        } else {
+            const label = names.length === 1
+                ? `${names[0]} đang gõ`
+                : `${names.join(', ')} đang gõ`;
+            text.textContent = label + '...';
+            text.style.display = 'inline';
+
+            // Thêm animation dots nếu chưa có
+            if (!document.getElementById('dotAnim')) {
+                const dots = document.createElement('span');
+                dots.id = 'dotAnim';
+                dots.className = 'dot-anim';
+                dots.innerHTML = '<span></span><span></span><span></span>';
+                document.getElementById('typing-banner').appendChild(dots);
+            }
+        }
+    }
+</script>
+</body>
+</html>

@@ -19,14 +19,16 @@ public class CommentCreatedEvent {
     private Long commenterId;
     private String commenterEmail;
     private String commenterName;
-
     private Long topicCreatorId;
     private String topicCreatorEmail;
-
+    
+    /**
+     * Thông tin của parent comment (nếu đây là reply)
+     * null nếu comment trực tiếp vào topic
+     */
     private Long parentCommentId;
     private Long parentCommentCreatorId;
     private String parentCommentCreatorEmail;
-
     private String commentBody;
     private LocalDateTime createdAt;
     private String topicTitle;

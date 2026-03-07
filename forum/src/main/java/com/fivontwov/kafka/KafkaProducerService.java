@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Service để gửi messages qua Kafka
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -18,7 +21,12 @@ public class KafkaProducerService {
     public static final String COMMENT_CREATED_TOPIC = "forum.comment.created";
     
     private final KafkaTemplate<String, Object> kafkaTemplate;
-
+    
+    /**
+     * Gửi event khi có comment mới được tạo
+     * 
+     * @param event CommentCreatedEvent chứa thông tin comment
+     */
     public void sendCommentCreatedEvent(CommentCreatedEvent event) {
         log.info("Sending comment created event to Kafka: commentId={}, topicId={}", 
                 event.getCommentId(), event.getTopicId());
